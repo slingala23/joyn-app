@@ -1,5 +1,10 @@
-// Organiser portal layout — applies to organise.joyn.uk routes
-// Sidebar / top nav will be added here
+import OrgNav from '@/components/organiser/OrgNav'
+
 export default function OrganiserLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      <OrgNav />
+    </>
+  )
 }
