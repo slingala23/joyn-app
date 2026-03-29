@@ -9,6 +9,11 @@ import ShareButtonClient from './ShareButton'
 
 export const dynamic = 'force-dynamic'
 
+interface PageProps {
+  params: { id: string }
+  searchParams: { payment?: string; error?: string }
+}
+
 const CATEGORY_COLOURS: Record<string, string> = {
   Sports:   'bg-blue-joyn/10 text-blue-joyn',
   Arts:     'bg-purple-500/10 text-purple-600',
@@ -25,7 +30,8 @@ function getFillColour(pct: number) {
   return 'bg-green-joyn'
 }
 
-export default async function EventDetailPage({ params }: { params: { id: string } }) {
+export default async function EventDetailPage({ params, searchParams }: PageProps) {
+  const paymentSuccess = searchParams.payment === 'success'
   const supabase = await createClient()
 
   // Fetch event with community
@@ -59,9 +65,13 @@ export default async function EventDetailPage({ params }: { params: { id: string
     member_count: number; verified: boolean
   } | null
 
-  const spotsLeft = event.capacity - event.spots_taken
-  const fillPct   = event.capacity > 0 ? Math.round((event.spots_taken / event.capacity) * 100) : 0
-  const isFull    = spotsLeft <= 0
+  const spotsLeft    = event.capacity - event.spots_taken
+  const fillPct      = event.capacity > 0 ? Math.round((event.spots_taken / event.capacity) * 100) : 0
+  const eventIsFull  = spotsLeft <= 0
+
+  // ?payment=success: Stripe redirected back — treat as confirmed optimistically
+  // while the webhook processes in the background (usually < 1s)
+  if (paymentSuccess && joinStatus === 'none') joinStatus = 'confirmed'
 
   const zonedDate = toZonedTime(new Date(event.date), 'Europe/London')
   const dayStr    = format(zonedDate, 'EEEE d MMMM yyyy')
@@ -134,9 +144,9 @@ export default async function EventDetailPage({ params }: { params: { id: string
               {event.spots_taken} / {event.capacity} going
             </span>
             <span className={`text-sm font-extrabold ${
-              isFull ? 'text-ink/40' : spotsLeft <= 5 ? 'text-coral' : 'text-ink/60'
+              eventIsFull ? 'text-ink/40' : spotsLeft <= 5 ? 'text-coral' : 'text-ink/60'
             }`}>
-              {isFull
+              {eventIsFull
                 ? (event.waitlist_enabled ? 'Join waitlist' : 'Full')
                 : `${spotsLeft} spot${spotsLeft === 1 ? '' : 's'} left`}
             </span>
@@ -166,7 +176,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
           eventId={event.id}
           pricePence={event.price_pence}
           initialStatus={joinStatus}
-          isFull={isFull}
+          isFull={eventIsFull}
           waitlistEnabled={event.waitlist_enabled}
         />
       </div>

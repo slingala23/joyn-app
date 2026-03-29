@@ -27,23 +27,82 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Webhook signature verification failed: ${message}` }, { status: 400 })
   }
 
+  // Service role — bypasses RLS so we can write on behalf of the paying user
   const supabase = createServiceClient()
 
   switch (event.type) {
     case 'checkout.session.completed': {
-      // TODO: Create event_joins row on successful payment
-      const session = event.data.object as Stripe.Checkout.Session
-      console.log('checkout.session.completed', session.id)
+      await handleCheckoutCompleted(supabase, event.data.object as Stripe.Checkout.Session)
       break
     }
-    case 'payment_intent.payment_failed': {
-      // TODO: Handle failed payment
+
+    case 'checkout.session.expired': {
+      // Nothing to do — user didn't pay, no join row was created
       break
     }
+
+    case 'charge.refunded': {
+      // A refund was issued (e.g. organiser cancelled the event).
+      // Mark the join as cancelled so the spot can be re-offered.
+      const charge = event.data.object as Stripe.Charge
+      const paymentIntentId = typeof charge.payment_intent === 'string'
+        ? charge.payment_intent
+        : charge.payment_intent?.id
+
+      if (paymentIntentId) {
+        await supabase
+          .from('event_joins')
+          .update({ status: 'cancelled' })
+          .eq('stripe_payment_intent_id', paymentIntentId)
+      }
+      break
+    }
+
     default:
-      // Unhandled event type — ignore
       break
   }
 
   return NextResponse.json({ received: true })
+}
+
+async function handleCheckoutCompleted(
+  supabase: ReturnType<typeof createServiceClient>,
+  session: Stripe.Checkout.Session
+) {
+  const eventId = session.metadata?.event_id
+  const userId  = session.metadata?.user_id
+  const paymentIntentId = typeof session.payment_intent === 'string'
+    ? session.payment_intent
+    : session.payment_intent?.id
+
+  if (!eventId || !userId) {
+    console.error('webhook: checkout.session.completed missing metadata', session.id)
+    return
+  }
+
+  // Attempt insert — unique constraint (event_id, user_id) makes this idempotent.
+  // If the row already exists (duplicate webhook), the insert is skipped.
+  const { data: inserted, error } = await supabase
+    .from('event_joins')
+    .insert({
+      event_id: eventId,
+      user_id: userId,
+      status: 'confirmed',
+      stripe_payment_intent_id: paymentIntentId ?? null,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    // 23505 = unique_violation — row already exists, webhook already processed
+    if (error.code === '23505') return
+    console.error('webhook: failed to insert event_join', error.message)
+    return
+  }
+
+  if (inserted) {
+    // Increment spots_taken directly — service role bypasses RLS.
+    // raw SQL increment avoids read-modify-write race conditions.
+    await supabase.rpc('increment_spots_taken', { p_event_id: eventId })
+  }
 }
