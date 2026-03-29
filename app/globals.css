@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    /* Prevent font size inflation on iOS */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-surface text-ink font-sans;
+    /* Centre the 390px mobile column on larger screens */
+    display: flex;
+    justify-content: center;
+    min-height: 100dvh;
+  }
+
+  #__next,
+  main {
+    width: 100%;
+    max-width: 390px;
+  }
+}
+
+@layer utilities {
+  /* Safe area insets for PWA / notched phones */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+}
