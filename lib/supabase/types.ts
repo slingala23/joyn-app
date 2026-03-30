@@ -23,6 +23,7 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['users']['Row'], 'created_at'>
         Update: Partial<Database['public']['Tables']['users']['Insert']>
+        Relationships: []
       }
       communities: {
         Row: {
@@ -38,6 +39,7 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['communities']['Row'], 'id' | 'created_at' | 'member_count' | 'verified'>
         Update: Partial<Database['public']['Tables']['communities']['Insert']>
+        Relationships: []
       }
       events: {
         Row: {
@@ -59,6 +61,7 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['events']['Row'], 'id' | 'created_at' | 'spots_taken'>
         Update: Partial<Database['public']['Tables']['events']['Insert']>
+        Relationships: []
       }
       event_joins: {
         Row: {
@@ -71,6 +74,7 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['event_joins']['Row'], 'id' | 'joined_at'>
         Update: Partial<Database['public']['Tables']['event_joins']['Insert']>
+        Relationships: []
       }
       community_members: {
         Row: {
@@ -81,6 +85,7 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['community_members']['Row'], 'id' | 'joined_at'>
         Update: Partial<Database['public']['Tables']['community_members']['Insert']>
+        Relationships: []
       }
       org_requests: {
         Row: {
@@ -95,10 +100,15 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['org_requests']['Row'], 'id' | 'created_at' | 'status'>
         Update: Partial<Database['public']['Tables']['org_requests']['Insert']>
+        Relationships: []
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
     Enums: {
       user_role: UserRole
       event_status: EventStatus

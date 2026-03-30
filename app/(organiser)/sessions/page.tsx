@@ -20,7 +20,7 @@ export default async function SessionsPage() {
 
   const { data: events } = await supabase
     .from('events')
-    .select('id, title, date, capacity, spots_taken, price_pence, status, location')
+    .select('*')
     .eq('organiser_id', user.id)
     .order('date', { ascending: false })
 

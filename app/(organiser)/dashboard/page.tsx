@@ -15,14 +15,14 @@ export default async function DashboardPage() {
   // Fetch organiser's community
   const { data: community } = await supabase
     .from('communities')
-    .select('id, name, member_count, verified')
+    .select('*')
     .eq('organiser_id', user.id)
     .single()
 
   // Fetch all organiser's events
   const { data: events } = await supabase
     .from('events')
-    .select('id, title, date, capacity, spots_taken, price_pence, status, location')
+    .select('*')
     .eq('organiser_id', user.id)
     .order('date', { ascending: false })
 
