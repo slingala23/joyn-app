@@ -8,6 +8,12 @@ const PUBLIC_ROUTES = ['/login', '/auth/callback', '/auth/confirm']
 const ORGANISER_PUBLIC_ROUTES = ['/login', '/auth/callback', '/auth/confirm']
 
 export async function middleware(request: NextRequest) {
+  // If Supabase env vars aren't configured (e.g. preview deployments without env vars set),
+  // skip auth checks so the app doesn't hard-crash in middleware.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return NextResponse.next()
+  }
+
   const { pathname, hostname } = request.nextUrl
 
   // Determine which domain we're on.
