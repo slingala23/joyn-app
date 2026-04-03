@@ -9,6 +9,23 @@ import ShareButtonClient from './ShareButton'
 
 export const dynamic = 'force-dynamic'
 
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const supabase = await createClient()
+  const { data: event } = await supabase
+    .from('events')
+    .select('title, description, location')
+    .eq('id', params.id)
+    .single()
+  if (!event) return {}
+  return {
+    title: event.title,
+    description: event.description || event.location,
+    openGraph: {
+      images: [`/api/og/${params.id}`],
+    },
+  }
+}
+
 interface PageProps {
   params: { id: string }
   searchParams: { payment?: string; error?: string }
